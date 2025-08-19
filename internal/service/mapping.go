@@ -1,6 +1,7 @@
 package service
 
 import (
+	"flag"
 	"fmt"
 	"slices"
 
@@ -8,29 +9,36 @@ import (
 	"golang.org/x/net/html"
 )
 
-func CreateSiteMap(path string, visitedLinks *[]string) ([]domain.Link, error) {
+var depth int
+
+func ParseFlags() {
+	flag.IntVar(&depth, "d", -1, "Maximum depth to search")
+}
+
+func CreateSiteMap(path string, visitedLinks *[]string, currentDepth int) ([]domain.Link, error) {
 	siteMap := []domain.Link{}
+	if currentDepth < depth || depth == -1 {
+		if slices.Contains(*visitedLinks, path) {
+			return nil, nil
+		}
+		*visitedLinks = append(*visitedLinks, path)
 
-	if slices.Contains(*visitedLinks, path) {
-		return nil, nil
-	}
-	*visitedLinks = append(*visitedLinks, path)
+		err := CreatePageMap(path, &siteMap)
+		if err != nil {
+			err = fmt.Errorf("erro ao criar mapa da página: %w", err)
+			return nil, err
+		}
 
-	err := CreatePageMap(path, &siteMap)
-	if err != nil {
-		err = fmt.Errorf("erro ao criar mapa da página: %w", err)
-		return nil, err
-	}
-
-	for _, site := range siteMap {
-		links := *visitedLinks
-		if !slices.Contains(links, site.Href) {
-			newMap, err := CreateSiteMap(site.Href, visitedLinks)
-			if err != nil {
-				err = fmt.Errorf("erro ao criar o mapa do site: %w", err)
-				return nil, err
+		for _, site := range siteMap {
+			links := *visitedLinks
+			if !slices.Contains(links, site.Href) {
+				newMap, err := CreateSiteMap(site.Href, visitedLinks, currentDepth+1)
+				if err != nil {
+					err = fmt.Errorf("erro ao criar o mapa do site: %w", err)
+					return nil, err
+				}
+				siteMap = append(siteMap, newMap...)
 			}
-			siteMap = append(siteMap, newMap...)
 		}
 	}
 	return siteMap, nil

@@ -1,9 +1,8 @@
 package main
 
 import (
-	"errors"
+	"flag"
 	"fmt"
-	"os"
 	"sort"
 
 	"github.com/RodrigoCelso/gophercises-05/internal/domain"
@@ -11,19 +10,19 @@ import (
 	"github.com/RodrigoCelso/gophercises-05/scripts"
 )
 
-// func generateXML() {}
+var url string
+
+func parseFlags() {
+	service.ParseFlags()
+	flag.StringVar(&url, "url", "", "URL para fazer o Sitemap")
+	flag.Parse()
+}
 
 func main() {
-	// Lê o argumento passado
-	args := os.Args
-	if len(args) < 2 {
-		fmt.Println("Erro:", fmt.Errorf("%v", errors.New("este sistema requer um link como argumento para construir o mapa")))
-		return
-	}
-	urlArg := args[1]
+	parseFlags()
 
 	var visitedLinks []string
-	siteMapRaw, err := service.CreateSiteMap(urlArg, &visitedLinks)
+	siteMapRaw, err := service.CreateSiteMap(url, &visitedLinks, 0)
 	if err != nil {
 		fmt.Println("Erro:", err)
 		return
